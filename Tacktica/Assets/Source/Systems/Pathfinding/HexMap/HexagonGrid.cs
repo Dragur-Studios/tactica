@@ -19,35 +19,28 @@ public class HexagonGrid : MonoBehaviour
 
     public bool DebugMode = true;
 
+    HexagonCell hover;
+    HexagonCell selected;
+
     private void Start()
     {
         GenerateGrid();
     }
 
+
     private void Update()
     {
-        
-        var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, 10000.0f))
+        if(hover != null)
         {
-            Vector2Int gridPosition = WorldToGridPosition(hit.point);
-              
-
-            // Check if the grid position is within the valid range of your grid
-            if (IsValidGridPosition(gridPosition))
+            if (Input.GetMouseButtonDown(0))
             {
-                var hex = grid[gridPosition.x, gridPosition.y];
-                hex.hover = true;
-
+                OnCellSelected(hover);
             }
-                
         }
-        
     }
 
     private bool IsValidGridPosition(Vector2Int position)
-    { 
+    {
         return position.x >= 0 && position.x < gridResolution &&
                position.y >= 0 && position.y < gridResolution;
     }
@@ -57,15 +50,13 @@ public class HexagonGrid : MonoBehaviour
     {
         ClearGrid();
 
-     
-        //nodes = new AStarNode[gridResolution, gridResolution];
         grid = new HexagonCell[gridResolution, gridResolution];
 
         for (int x = 0; x < gridResolution; x++)
         {
             for (int y = 0; y < gridResolution; y++)
             {
-                var go = new GameObject($"Hex{x}{y}", typeof(HexagonCell), typeof(HexRenderer));
+                var go = new GameObject($"Hex{x}{y}", typeof(HexagonCell), typeof(HexRenderer), typeof(MeshCollider));
 
                 var hex = go.GetComponent<HexRenderer>();
                 hex.innerSize = inner_size;
@@ -74,11 +65,15 @@ public class HexagonGrid : MonoBehaviour
                 hex.isFlatTopped = isFlatTopped;
                 hex.GenerateMesh();
 
-                go.transform.position = GetPositionByOffsets(new (x, y));
+                go.transform.position = GridToWorldPosition(new(x, y));
                 go.transform.SetParent(transform, true);
 
-                //nodes[x, y] = new AStarNode(new ( x, y), true);
+                var col = go.GetComponent<MeshCollider>();
+                col.convex = true;
+                col.sharedMesh = hex.GetMesh();
+
                 var cell = go.GetComponent<HexagonCell>();
+                cell.Init(this);
 
                 if (DebugMode)
                 {
@@ -88,9 +83,9 @@ public class HexagonGrid : MonoBehaviour
                     txt.text = $"{x},{y}";
                     txt.fontSize = 4;
                     txt.alignment = TMPro.TextAlignmentOptions.Center;
-                    
+
                     dbgText.transform.position = cell.transform.position;
-                    
+
                     var pos = txt.transform.position;
                     pos.y += (hex.height / 2) + 1e-4f;
                     txt.transform.position = pos;
@@ -98,7 +93,7 @@ public class HexagonGrid : MonoBehaviour
                     var rect = txt.GetComponent<RectTransform>();
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1);
                     rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 1);
-                
+
                     dbgText.transform.Rotate(new Vector3(90f, 0, 0));
                     dbgText.transform.SetParent(cell.transform, true);
                 }
@@ -112,11 +107,10 @@ public class HexagonGrid : MonoBehaviour
         Debug.Log("<color=green> Generated Grid</color>");
     }
 
-
-    private Vector3 GetPositionByOffsets(Vector2Int coord)
+    public Vector3 GridToWorldPosition(Vector2Int coord)
     {
         float row = coord.x;
-        float col= coord.y;
+        float col = coord.y;
         float width;
         float height;
         float xPosition = 0;
@@ -132,7 +126,7 @@ public class HexagonGrid : MonoBehaviour
         {
             shouldOffset = (row % 2) == 0;
             width = Mathf.Sqrt(3) * size;
-            height = 2f * size; 
+            height = 2f * size;
 
             horizontalDistance = width;
             verticalDistance = height * (3f / 4f);
@@ -149,62 +143,88 @@ public class HexagonGrid : MonoBehaviour
             height = Mathf.Sqrt(3) * size;
             width = 2f * size;
 
-            horizontalDistance = width * (3.0f/4.0f);
+            horizontalDistance = width * (3.0f / 4.0f);
             verticalDistance = height;
 
             offset = shouldOffset ? height / 2.0f : 0;
 
-            xPosition = (col * horizontalDistance) ;
+            xPosition = (col * horizontalDistance);
             yPosition = (row * verticalDistance) - offset;
 
         }
 
-  
 
-        return new Vector3(xPosition, 0, -yPosition);
-    }
 
-    public Vector3 GridToWorldPosition(Vector2Int gridPosition)
-    {
-        return GetPositionByOffsets(gridPosition);
+        return new Vector3(xPosition, 0, yPosition);
     }
 
     public Vector2Int WorldToGridPosition(Vector3 worldPosition)
     {
         float size = cellSize;
-        float width;
-        float height;
-
+        float width = Mathf.Sqrt(3) * size;
+        float height = 2f * size;
         float col, row;
 
         if (!isFlatTopped)
         {
-            width = Mathf.Sqrt(3) * size;
-            height = 2f * size;
-            col = (worldPosition.x / (width * 0.75f)) + 0.5f;
-            row = (worldPosition.z / height) + 0.5f;
+            col = (worldPosition.x / width);
+            row = ((worldPosition.z + ((Mathf.Floor(col) % 2 == 0) ? 0 : height * 0.75f)) / height) - 0.5f;
         }
         else
         {
-            width = 2f * size;
-            height = Mathf.Sqrt(3) * size;
-            col = (worldPosition.x / width) + 0.5f;
-            row = ((worldPosition.z + ((Mathf.Floor(col) % 2 == 0) ? 0 : height * 0.5f)) / height) + 0.5f;
+            row = (worldPosition.x / width);
+            col = ((worldPosition.z + ((Mathf.Floor(row) % 2 == 0) ? 0 : height * 0.5f)) / height) - 0.5f;
         }
 
         int roundedCol = Mathf.RoundToInt(col);
         int roundedRow = Mathf.RoundToInt(row);
 
+        if (!isFlatTopped)
+        {
+            int temp = roundedCol;
+            roundedCol = roundedRow;
+            roundedRow = temp;
+        }
+
         Vector2Int gridPosition = new Vector2Int(roundedCol, roundedRow);
-
-        Debug.Log($"World Position: {worldPosition}, Grid Position: {gridPosition}");
-
         return gridPosition;
     }
 
+    public void OnCellHoverEnter(HexagonCell cell)
+    {
+        cell.hover = true;
+        hover = cell;
+    }
 
+    public void OnCellHoverExit(HexagonCell cell)
+    {
+        hover = null;
+        cell.hover = false;
+    }
 
+    public void OnCellSelected(HexagonCell cell)
+    {
+        if(selected == cell)
+        {
+            cell.selected = false;
+            selected = null;
+            return;
+        }
 
+        if (selected)
+        {
+            selected.selected = false;
+            selected = null;
+        }
+
+        cell.selected = true;
+        selected = cell;
+
+        if (hover)
+        {
+            hover = null;
+        }
+    }
 
     private void ClearGrid()
     {
@@ -229,6 +249,6 @@ public class HexagonGrid : MonoBehaviour
             }
         }
 
-       
+
     }
 }

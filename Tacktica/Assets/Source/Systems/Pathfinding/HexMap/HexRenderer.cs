@@ -98,6 +98,12 @@ public class HexRenderer : MonoBehaviour
         return new Vector3((size* Mathf.Cos(angle_rad)), height, (size * Mathf.Sin(angle_rad)));
 
     }
+
+    internal Mesh GetMesh()
+    {
+        return GetComponent<MeshFilter>().sharedMesh;
+    }
+
     Face CreateFace(float innerRad, float outerRad, float heightA, float heightB, int point, bool reverse = false)
     {
         var pointA = GetPoint(innerRad, heightB, point);

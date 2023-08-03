@@ -6,29 +6,49 @@ public class HexagonCell : MonoBehaviour
     public bool hover = false;
 
     MeshRenderer renderer;
+    Material material;
+
     Color defaultColor = Color.white;
 
+    HexagonGrid grid;
+    internal bool selected;
 
-    private void Start()
+   
+    public void Init(HexagonGrid grid)
     {
         renderer = GetComponent<MeshRenderer>();
+        material = renderer.material;
 
         defaultColor = renderer.material.GetColor("_Base_Color");
+        this.grid = grid;
     }
 
     private void Update()
     {
         if (hover)
         {
-            renderer.material.SetColor("_Base_Color", Color.green);
-        }else
+            material.SetColor("_Base_Color", Color.green);
+        }
+        else if (selected)
         {
-            renderer.material.SetColor("_Base_Color", defaultColor);
+            material.SetColor("_Base_Color", Color.blue);
+        }
+        else
+        {
+            material.SetColor("_Base_Color", defaultColor);
         }
     }
 
-    private void LateUpdate()
+
+    public void OnMouseEnter()
     {
-        hover = false;
+        grid.OnCellHoverEnter(this);
     }
+
+    public void OnMouseExit()
+    {
+        grid.OnCellHoverExit(this);
+    }
+
+
 }

@@ -65,7 +65,7 @@ public class AStar
                 }
             }
         }
-
+        Debug.Log("<color=red>NO PATH COULD BE DETERMINED!</color>");
         return null; // Path not found
     }
 

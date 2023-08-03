@@ -121,6 +121,9 @@ public class HexPathfinder : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        if (path == null)
+            return;
+
         bool hasPath = path.Count > 0;
 
         if (hasPath)
