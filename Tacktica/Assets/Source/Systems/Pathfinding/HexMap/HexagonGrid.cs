@@ -73,7 +73,7 @@ public class HexagonGrid : MonoBehaviour
                 col.sharedMesh = hex.GetMesh();
 
                 var cell = go.GetComponent<HexagonCell>();
-                cell.Init(this);
+                cell.Init();
 
                 if (DebugMode)
                 {
@@ -83,11 +83,12 @@ public class HexagonGrid : MonoBehaviour
                     txt.text = $"{x},{y}";
                     txt.fontSize = 4;
                     txt.alignment = TMPro.TextAlignmentOptions.Center;
-
+                    // align the debug text object to the cells position to start alignment
                     dbgText.transform.position = cell.transform.position;
 
+                    // align the debug text object to the top of the cell
                     var pos = txt.transform.position;
-                    pos.y += (hex.height / 2) + 1e-4f;
+                    pos.y += (hex.height) + 1e-4f;  // use the height and some small offset to get around z-fighting
                     txt.transform.position = pos;
 
                     var rect = txt.GetComponent<RectTransform>();
@@ -96,9 +97,22 @@ public class HexagonGrid : MonoBehaviour
 
                     dbgText.transform.Rotate(new Vector3(90f, 0, 0));
                     dbgText.transform.SetParent(cell.transform, true);
+
                 }
 
 
+                // create the center transform object for use with pathfinding and placement
+                cell.center = new GameObject("center").transform;
+
+                // set the position to the cells transform to start alignment
+                cell.center.position = cell.transform.position;
+
+                // align the center object to the top of the cell
+                var center = cell.center.position;
+                center.y += (hex.height) + 1e-4f;   // use the height and some small offset to get around z-fighting
+                cell.center.position = center;
+                cell.center.SetParent(cell.transform, true);
+                
                 grid[x, y] = cell;
 
             }

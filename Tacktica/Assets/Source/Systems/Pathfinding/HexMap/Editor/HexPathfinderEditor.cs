@@ -8,7 +8,6 @@ using UnityEngine;
 [CustomEditor(typeof(HexPathfinder))]
 public class HexPathfinderEditor : Editor
 {
-
     HexPathfinder pathfinder;
     HexagonGrid layout;
 

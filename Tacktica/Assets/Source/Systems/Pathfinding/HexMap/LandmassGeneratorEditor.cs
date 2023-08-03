@@ -7,85 +7,71 @@ using UnityEditor;
 public class LandmassGeneratorEditor : Editor
 {
     HexGridLandmassGenerator generator;
-
-    int seed = 0;
-    GeoGenAlgorithm algorithm = GeoGenAlgorithm.Perlin;
-
     bool isOpen = true;
-    
-    // ds settings
-    public int mapSize = 64; // Make sure it's 2^n + 1 for the Diamond-Square algorithm
-    public float roughness = 0.5f;
-    
-    // perlin settings
-    public float frequency = 0.1f;
-    public float noiseScale = 0.17f;
-    public int octaves = 4;
-
 
     public override void OnInspectorGUI()
     {
+        
         base.OnInspectorGUI();
 
         if(generator == null)
             generator = (HexGridLandmassGenerator)target;
+        
 
         GUILayout.BeginHorizontal();
-        seed = EditorGUILayout.IntField(new GUIContent("Seed"), seed);
+        generator.seed = EditorGUILayout.IntField(new GUIContent("Seed"), generator.seed);
         if (GUILayout.Button("Random"))
         {
-            seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
+            generator.seed = UnityEngine.Random.Range(int.MinValue, int.MaxValue);
         }
         GUILayout.EndHorizontal();
 
-        if(algorithm == GeoGenAlgorithm.Perlin)
+        GUILayout.BeginHorizontal();
+        generator.algorithm = (GeoGenAlgorithm)EditorGUILayout.EnumPopup((System.Enum)generator.algorithm);
+
+        if (GUILayout.Button("Add Noise"))
         {
-            isOpen = EditorGUILayout.BeginFoldoutHeaderGroup(isOpen, "Perlin Settings");
+            if (generator.algorithm == GeoGenAlgorithm.Perlin)
+            {
+                generator.GeneratePerlin(generator.seed, generator.noiseScale, generator.amplitude, generator.frequency, generator.octaves);
+
+            }
+            else if (generator.algorithm == GeoGenAlgorithm.DiamondSquare)
+            {
+                generator.GenerateAsDiamondSquare(generator.seed, generator.mapSize, generator.roughness);
+            }
+
+        }
+        GUILayout.EndHorizontal();
+
+        if (generator.algorithm == GeoGenAlgorithm.Perlin)
+        {
+            isOpen = EditorGUILayout.BeginFoldoutHeaderGroup(isOpen, "Settings");
             if (isOpen)
             {
-                frequency = EditorGUILayout.Slider(new GUIContent("Frequency"), frequency, 0.01f, 1.0f);
-                noiseScale = EditorGUILayout.Slider(new GUIContent("Noise Scale"), noiseScale, 0.01f, 1.0f);
-                octaves = EditorGUILayout.IntSlider(new GUIContent("Octaves"), octaves, 1, 12);
+                generator.frequency = EditorGUILayout.Slider(new GUIContent("Frequency"), generator.frequency, 0.01f, 1.0f);
+                generator.amplitude = EditorGUILayout.Slider(new GUIContent("Amplitude"), generator.amplitude, 0.01f, 5.0f);
+                generator.noiseScale = EditorGUILayout.Slider(new GUIContent("Noise Scale"), generator.noiseScale, 0.01f, 1.0f);
+                generator.octaves = EditorGUILayout.IntSlider(new GUIContent("Octaves"), generator.octaves, 1, 12);
                 
                 EditorGUILayout.EndFoldoutHeaderGroup();
             }
         }
-        else if(algorithm == GeoGenAlgorithm.DiamondSquare)
+        else if(generator.algorithm == GeoGenAlgorithm.DiamondSquare)
         {
-            isOpen = EditorGUILayout.BeginFoldoutHeaderGroup(isOpen, "DiamondSquare Settings");
+            isOpen = EditorGUILayout.BeginFoldoutHeaderGroup(isOpen, "Settings");
+            EditorGUILayout.HelpBox("WAIT!!!! DO NOT USE UNTIL REMOVED!!", MessageType.Warning);
             if (isOpen)
             {
-                mapSize = EditorGUILayout.IntSlider(new GUIContent("Map Size"), mapSize, 1, 128);
-                roughness = EditorGUILayout.Slider(new GUIContent("Roughness"), roughness, 0, 1);
+                generator.mapSize = EditorGUILayout.IntSlider(new GUIContent("Map Size"), generator.mapSize, 1, 128);
+                generator.roughness = EditorGUILayout.Slider(new GUIContent("Roughness"), generator.roughness, 0, 1);
 
                 EditorGUILayout.EndFoldoutHeaderGroup();
             }
         }
 
-        GUILayout.BeginHorizontal();
-        algorithm = (GeoGenAlgorithm)EditorGUILayout.EnumPopup((System.Enum)algorithm);
+       
 
-        if (GUILayout.Button("Add Noise"))
-        {
-            //generator.Generate(seed, algorithm);
-            if (algorithm == GeoGenAlgorithm.Perlin)
-            {
-                generator.GeneratePerlin(seed, noiseScale, frequency, octaves);
-
-            }
-            else if (algorithm == GeoGenAlgorithm.DiamondSquare)
-            {
-               generator.GenerateAsDiamondSquare(seed, mapSize, roughness);
-            }
-
-        }
-        GUILayout.EndHorizontal();
-
-
-        if (GUILayout.Button("Flatten"))
-        {
-            generator.FlattenWorld();
-        }
     }
 }
   

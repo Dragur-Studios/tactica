@@ -2,9 +2,9 @@
 
 public class HexagonCell : MonoBehaviour 
 {
-
     public bool hover = false;
 
+    [HideInInspector] public Transform center = null;
     MeshRenderer renderer;
     Material material;
 
@@ -13,20 +13,38 @@ public class HexagonCell : MonoBehaviour
     HexagonGrid grid;
     internal bool selected;
 
-   
-    public void Init(HexagonGrid grid)
+    private void Start()
     {
-        renderer = GetComponent<MeshRenderer>();
-        material = renderer.material;
+        Init();
+    }
 
-        defaultColor = renderer.material.GetColor("_Base_Color");
-        this.grid = grid;
+    public void Init()
+    {
+        if (!Application.isPlaying)
+        {
+            renderer = GetComponent<MeshRenderer>();
+            material = renderer.sharedMaterial;
+
+            defaultColor = renderer.sharedMaterial.GetColor("_Base_Color");
+        }
+        else
+        {
+            renderer = GetComponent<MeshRenderer>();
+            material = renderer.material;
+
+            defaultColor = renderer.material.GetColor("_Base_Color");
+        }
+
+        if (grid == null)
+            grid = FindObjectOfType<HexagonGrid>();
+
     }
 
     private void Update()
     {
         if (hover)
         {
+            Debug.Log($"Hovering: hexagon->{name}");
             material.SetColor("_Base_Color", Color.green);
         }
         else if (selected)

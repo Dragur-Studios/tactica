@@ -127,26 +127,28 @@ public class HexRenderer : MonoBehaviour
     {
         _faces = new List<Face>();
 
+        // TOP FACE
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, outerSize, height / 2.0f, height / 2.0f, point));
+            _faces.Add(CreateFace(innerSize, outerSize, height, height, point));
         }
 
+        // BOTTOM FACE
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, outerSize,- height / 2.0f, -height / 2.0f, point, true));
+            _faces.Add(CreateFace(innerSize, outerSize, 0, 0, point, true));
         }
 
         // draw outer faces
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(outerSize, outerSize, height / 2.0f, -height / 2.0f, point, true));
+            _faces.Add(CreateFace(outerSize, outerSize, height , 0, point, true));
         }
 
         // draw inner faces
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, innerSize, height / 2.0f, -height / 2.0f, point));
+            _faces.Add(CreateFace(innerSize, innerSize, height, 0, point));
         }
 
     }

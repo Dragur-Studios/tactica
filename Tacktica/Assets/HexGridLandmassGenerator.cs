@@ -15,27 +15,30 @@ public enum GeoGenAlgorithm
 [RequireComponent(typeof(HexagonGrid))]
 public class HexGridLandmassGenerator : MonoBehaviour
 {
+
     public Gradient enviormentRamp = new Gradient();
+    [HideInInspector]public int seed = 0;
+    [HideInInspector]public GeoGenAlgorithm algorithm = GeoGenAlgorithm.Perlin;
+
+
+    // ds settings
+    [HideInInspector]public int mapSize = 64; // Make sure it's 2^n + 1 for the Diamond-Square algorithm
+    [HideInInspector]public float roughness = 0.5f;
+
+    // perlin settings
+    [HideInInspector]public float frequency = 0.1f;
+    [HideInInspector]public float amplitude = 1.0f;
+    [HideInInspector]public float noiseScale = 0.17f;
+    [HideInInspector]public int octaves = 4;
 
     [HideInInspector] public Texture2D heightmap;
  
     HexagonGrid layout;
-    public void FlattenWorld()
-    {
-        var tiles = layout.grid;
 
-        for (int x = 0; x < tiles.GetLength(0); x++)
-        {
-            for (int y = 0; y < tiles.GetLength(1); y++)
-            {
-                var pos = tiles[x, y].transform.position;
-                pos.y = 0;
-                tiles[x, y].transform.position = pos;
-            }
-        }
-    }
-    public void GeneratePerlin(int seed, float noiseScale, float frequency, int octaves)
+    public void GeneratePerlin(int seed, float noiseScale, float amplitude, float frequency, int octaves)
     {
+        Random.InitState(((seed << 32) >> 16) << 32);
+
         layout = GetComponent<HexagonGrid>();
         var tiles = layout.grid;
         
@@ -57,7 +60,6 @@ public class HexGridLandmassGenerator : MonoBehaviour
                 float noiseValue = 0f;
 
                 // Calculate the amplitude and frequency for each octave in the current layer
-                float amplitude = 1f;
                 float layerFrequency = frequency;
 
                 // Calculate the total amplitude to normalize the final noise value
@@ -75,10 +77,8 @@ public class HexGridLandmassGenerator : MonoBehaviour
                     sample = Mathf.Pow(sample, 2);
 
                     // Sum up the noise samples with appropriate amplitude
-                    noiseValue += sample * amplitude;
+                    noiseValue += sample * (amplitude * amplitude);
 
-                    // Update amplitude and frequency for the next octave in the current layer
-                    amplitude = 1.0f;
                     totalAmplitude += amplitude;
                     layerFrequency *= 2f; // You can adjust this factor to control the octave frequencies
                 }
@@ -87,38 +87,53 @@ public class HexGridLandmassGenerator : MonoBehaviour
                 noiseValue /= totalAmplitude;
 
                 // Modify the scale based on the normalized noise value and the height multiplier
-                var position = tiles[x, y].transform.position;
-                position.y = noiseValue * 10;
-                tiles[x, y].transform.position = position;
+                var rend = tiles[x, y].GetComponent<HexRenderer>();
+                rend.height = noiseValue * 10;
+                rend.GenerateMesh();
+
+                var col = rend.GetComponent<MeshCollider>();
+                col.convex = true;
+                col.sharedMesh = rend.GetMesh();
 
                 // Apply the modified scale back to the tile
 
-                var material = new Material(tiles[x, y].GetComponent<MeshRenderer>().sharedMaterial);
+                var material = new Material(Resources.Load<Material>("Materials/Tiles/Hexagon"));
+                if(rend.height <= 2)
+                {
+                    material = new Material(Resources.Load<Material>("Materials/Tiles/Hexagon(Transparent)"));
+                };
+
                 var color = enviormentRamp.Evaluate(noiseValue);
                 material.SetColor("_Base_Color", color);
                 tiles[x, y].GetComponent<MeshRenderer>().material = material;
+                
                 // Set the pixel color in the debug texture based on the normalized noise value
                 heightmap.SetPixel(x, y, color);
+
+                var cell = rend.GetComponent<HexagonCell>();
+                cell.Init();
+
+                bool hasChildren = rend.transform.childCount > 0;
+                if (hasChildren)
+                {
+                    // update all children to the surface. know children include but are not limited to.
+                    //  * debug text object <is removed by debug_mode=false>
+                    //  * cell transform object
+
+                    var childcount = rend.transform.childCount;
+                    for (int i = childcount - 1; i >= 0; i--)
+                    {
+                        var child = rend.transform.GetChild(i).gameObject;
+                        var pos = child.transform.position;
+                        pos.y = (rend.height) + 1e-4f;
+                        child.transform.position = pos;
+                    }
+
+                }
 
             }
 
         }
-
-    }
-
-    public void Generate(int seed, GeoGenAlgorithm mode)
-    {
-        Random.InitState((int)System.DateTime.Now.Ticks);
-
-        layout = GetComponent<HexagonGrid>();
-        var tiles = layout.grid;
-
-        // Calculate the size of the texture based on the number of tiles in the tilemap
-        int textureWidth = tiles.GetLength(0); // You can adjust the scale here based on your requirements
-        int textureHeight = tiles.GetLength(1); // You can adjust the scale here based on your requirements
-
-        // Create a new debug texture with the calculated size
-        heightmap = new Texture2D(textureWidth, textureHeight);
 
     }
 
@@ -230,7 +245,6 @@ public class HexGridLandmassGenerator : MonoBehaviour
 
         heightmap.Apply();
     }
-
 
     private void DiamondSquareStep(int stepSize, float roughness)
     {
