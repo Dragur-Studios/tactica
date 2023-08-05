@@ -1,34 +1,67 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 public class HexagonCell : MonoBehaviour 
 {
-
     public bool hover = false;
+    public Vector2Int coord = Vector2Int.zero;
 
-    MeshRenderer renderer;
-    Color defaultColor = Color.white;
+    // Color defaultColor = Color.white;
+    [HideInInspector] public Transform center = null;
+    
+    //Material material;
 
+    HexWorldGenerator grid;
 
-    private void Start()
+    internal bool selected;
+    internal bool isWalkable = true;
+
+    //private void Start()
+    //{
+    //    Init();
+    //}
+
+    public void Init(Vector2Int coord)
     {
-        renderer = GetComponent<MeshRenderer>();
+          
+        if (grid == null)
+            grid = FindObjectOfType<HexWorldGenerator>();
 
-        defaultColor = renderer.material.GetColor("_Base_Color");
+
+        this.coord = coord;
+
     }
 
     private void Update()
     {
-        if (hover)
-        {
-            renderer.material.SetColor("_Base_Color", Color.green);
-        }else
-        {
-            renderer.material.SetColor("_Base_Color", defaultColor);
-        }
+        //if (renderer == null)
+        //    return;
+
+        //if (hover)
+        //{
+        //    Debug.Log($"Hovering: hexagon->{name}");
+        //    material.SetColor("_Base_Color", Color.green);
+        //}
+        //else if (selected)
+        //{
+        //    material.SetColor("_Base_Color", Color.blue);
+        //}
+        //else
+        //{
+        //    material.SetColor("_Base_Color", defaultColor);
+        //}
     }
 
-    private void LateUpdate()
+
+    public void OnMouseEnter()
     {
-        hover = false;
+        grid.OnCellHoverEnter(this);
     }
+
+    public void OnMouseExit()
+    {
+        grid.OnCellHoverExit(this);
+    }
+
+
 }

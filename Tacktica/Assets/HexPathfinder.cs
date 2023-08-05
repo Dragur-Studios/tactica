@@ -3,106 +3,61 @@ using UnityEngine;
 
 public class HexPathfinder : MonoBehaviour
 {
-    public AStarNode[,] nodes;
+    public Dictionary<Vector2Int, AStarNode> nodes;
 
-    HexagonGrid layout;
+    HexWorldGenerator layout;
 
-    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int target)
+    public List<Vector3> FindPath(Vector2Int start, Vector2Int target)
     {
         if (layout == null)
-            layout = GetComponent<HexagonGrid>();
+            layout = GetComponent<HexWorldGenerator>();
 
-        // copy all of the tiles into nodes.
-        var height = layout.grid.GetLength(1);
-        var width = layout.grid.GetLength(0);
+        nodes = new Dictionary<Vector2Int, AStarNode>();
 
-        nodes = new AStarNode[width, height];
-
-        for (int x = 0; x < width; x++)
+        for (int x = -layout.range; x < layout.range; x++)
         {
-            for (int y = 0; y < height; y++)
+            for (int y = -layout.range; y < layout.range; y++)
             {
-                var node = new AStarNode(layout, new Vector2Int(x, y));
+                var coord = new Vector2Int(x, y);
+               
+                var node = new AStarNode(layout, new Vector2Int(x, y), layout.graph[coord].cell.isWalkable);
 
-                nodes[x, y] = node;
+                nodes.Add(coord, node);
             }
         }
-
-        return path = AStar.FindPath(this, start, target);
+        var gridPath = AStar.FindPath(this, start, target);
+        return path = ConvertPathToWorld(gridPath);
     }
-    public List<Vector2Int> GetNeighborPositions(Vector2Int position)
+
+    private List<Vector3> ConvertPathToWorld(List<Vector2Int> gridPath)
     {
-        if (layout == null)
-            layout = GetComponent<HexagonGrid>();
-
-        List<Vector2Int> neighbors = new List<Vector2Int>();
+        List<Vector3> converted = new List<Vector3>();
 
 
-        bool oddRow = position.y % 2 == 1;
-
-        if(position.x -1 >= 0)
-        {// left 
-            neighbors.Add(new Vector2Int(position.x - 1, position.y));
-
-        }
-        if (position.x + 1 < layout.gridResolution)
-        {// right 
-            neighbors.Add(new Vector2Int(position.x + 1, position.y));
-
-        }
-        if(position.y -1 >= 0)
-        {// down
-            neighbors.Add(new Vector2Int(position.x, position.y-1));
-
-        }
-        if(position.y + 1 < layout.gridResolution)
-        {// up
-            neighbors.Add(new Vector2Int(position.x, position.y+1));
-        }
-
-        if (oddRow)
+        for (int i = 0; i < gridPath.Count; i++)
         {
-            if(position.y + 1 < layout.gridResolution && position.x + 1 < layout.gridResolution)
-            {
-                neighbors.Add(new Vector2Int(position.x + 1, position.y + 1));
-            }
-            if(position.y -1 >= 0 && position.x + 1 < layout.gridResolution)
-            {
-
-                neighbors.Add(new Vector2Int(position.x + 1, position.y - 1));
-            }
+            var coord = new Vector2Int(gridPath[i].x, gridPath[i].y);
+            converted.Add(layout.graph[coord].cell.center.position);
         }
-        else
-        {
-            if(position.y + 1 < layout.gridResolution && position.x -1 >= 0)
-            {
-                neighbors.Add(new Vector2Int(position.x-1, position.y+1));
-            }
-            if(position.y -1 >= 0 && position.x -1 >= 0)
-            {
-                neighbors.Add(new Vector2Int(position.x-1, position.y-1));
-            }
-        }
-
-
-        return neighbors;
+        
+        return converted;
     }
 
 
     private bool IsValidGridPosition(Vector2Int position)
     {
         if (layout == null)
-            layout = GetComponent<HexagonGrid>();
+            layout = GetComponent<HexWorldGenerator>();
 
 
         // Ensure that both x and y coordinates are non-negative
-        if (position.x < 0 || position.y < 0)
+        if (position.x < -layout.range || position.y < -layout.range)
         {
             return false;
         }
 
         // Check if the position is within the grid resolution
-        if (position.x >= layout.gridResolution || position.y >= layout.gridResolution)
+        if (position.x >= layout.range || position.y >= layout.range)
         {
             return false;
         }
@@ -110,7 +65,8 @@ public class HexPathfinder : MonoBehaviour
         if (nodes == null)
             return false;
 
-        if(!nodes[position.x, position.y].IsWalkable())
+        
+        if(!nodes[position].isWalkable)
         {
             return false;
         }
@@ -121,46 +77,36 @@ public class HexPathfinder : MonoBehaviour
 
     private void OnDrawGizmos()
     {
+        if (path == null)
+            return;
+
         bool hasPath = path.Count > 0;
 
         if (hasPath)
         {
-            var _start = layout.GridToWorldPosition(path[0]);
-            var _end = layout.GridToWorldPosition(path[path.Count-1]);
+            var _start = path[0];
+            var _end = path[path.Count-1];
 
             Gizmos.color = Color.green;
             Gizmos.DrawLine(_start, _start + Vector3.up);
-
-            var positions = GetNeighborPositions(path[0]);
-            for (int i = 0; i < positions.Count; i++)
-            {
-                var p = layout.GridToWorldPosition(positions[i]);
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawLine(p, p + Vector3.up);
-
-            }
-
 
             Gizmos.color = Color.red;
             Gizmos.DrawLine(_end, _end + Vector3.up);
 
             for (int i = 0; i < path.Count - 1; i++)
             {
-                var p1 = layout.GridToWorldPosition(path[i]);
-                var p2 = layout.GridToWorldPosition(path[i + 1]);
+                var p1 = path[i];
+                var p2 = path[i + 1];
 
                 Gizmos.color = Color.blue;
                 Gizmos.DrawLine(p1, p2);
 
             }
 
-
-
-
         }
 
     }
 
-    List<Vector2Int> path = new List<Vector2Int>();
+    List<Vector3> path = new List<Vector3>();
 
 }

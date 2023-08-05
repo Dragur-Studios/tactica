@@ -20,44 +20,112 @@ public struct Face
     }
 }
 
+[ExecuteAlways]
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 public class HexRenderer : MonoBehaviour
 {
     Mesh _mesh;
-    MeshFilter _filter;
-    MeshRenderer _renderer;
 
     List<Face> _faces;
 
     public float innerSize = 0;
-    public float outerSize = 0;
-    public float height = 0.0f;
+    public float outerSize = 1;
+    public float height = 0.1f;
     public bool isFlatTopped = false;
 
+    float lastHeight;
+    float lastOuterSize;
+    float lastInnerSize;
+    bool lastIsFlatTopped;
+
+    bool hasInit = false;
+
+    public Material Material {
+        get {
+            var success = TryGetComponent(out MeshRenderer rend);
+
+            if (!success)
+            {
+                rend = gameObject.AddComponent<MeshRenderer>();
+            }
+
+            if (Application.isPlaying)
+            {
+                return rend.material;
+            }
+            else
+            {
+                return rend.sharedMaterial;
+            }
+
+        }
+        set {
+            var success = TryGetComponent(out MeshRenderer rend);
+
+            if (!success)
+            {
+                rend = gameObject.AddComponent<MeshRenderer>();
+            }
+
+            if (Application.isPlaying)  
+            { 
+                rend.material = value; 
+            } 
+            else 
+            { 
+                rend.sharedMaterial = value; 
+            } 
+        }
+    }
     private void Init()
     {
-        _filter = GetComponent<MeshFilter>();
-        
+        if (hasInit == true)
+            return;
+
         _mesh = new Mesh();
         _mesh.name = "Hex";
-        _filter.sharedMesh = _mesh;
 
-        _renderer = GetComponent<MeshRenderer>();
-        _renderer.material = Resources.Load<Material>("Materials/Tiles/Hexagon");
+        GetComponent<MeshFilter>().sharedMesh = _mesh;
 
         _faces = new List<Face>();
+        
+        hasInit = true;
     }
 
     public void GenerateMesh()
     {
         Init();
-
+        
         if (_mesh == null)
             return;
 
         CreateFaces();
         CombineFaces();
+    }
+
+    private void Update()
+    {
+        if(lastHeight != height)
+        {
+            GenerateMesh();
+            lastHeight = height;
+        }
+        if (lastInnerSize != innerSize)
+        {
+            GenerateMesh();
+            lastInnerSize = innerSize;
+        }
+        if(lastOuterSize != outerSize)
+        {
+            GenerateMesh();
+            lastOuterSize = outerSize;
+        }
+        if(lastIsFlatTopped != isFlatTopped)
+        {
+            GenerateMesh();
+            lastIsFlatTopped = isFlatTopped;
+        }
     }
 
     private void CombineFaces()
@@ -80,7 +148,7 @@ public class HexRenderer : MonoBehaviour
         }
 
         if (_mesh == null)
-            _mesh = _filter.sharedMesh;
+            _mesh = GetComponent<MeshFilter>().sharedMesh;
 
         _mesh.vertices = verts.ToArray();
         _mesh.uv = uv.ToArray();
@@ -98,6 +166,12 @@ public class HexRenderer : MonoBehaviour
         return new Vector3((size* Mathf.Cos(angle_rad)), height, (size * Mathf.Sin(angle_rad)));
 
     }
+
+    internal Mesh GetMesh()
+    {
+        return GetComponent<MeshFilter>().sharedMesh;
+    }
+
     Face CreateFace(float innerRad, float outerRad, float heightA, float heightB, int point, bool reverse = false)
     {
         var pointA = GetPoint(innerRad, heightB, point);
@@ -121,27 +195,31 @@ public class HexRenderer : MonoBehaviour
     {
         _faces = new List<Face>();
 
+        // TOP FACE
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, outerSize, height / 2.0f, height / 2.0f, point));
+            _faces.Add(CreateFace(innerSize, outerSize, height, height, point));
         }
 
+        // BOTTOM FACE
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, outerSize,- height / 2.0f, -height / 2.0f, point, true));
+            _faces.Add(CreateFace(innerSize, outerSize, 0, 0, point, true));
         }
 
         // draw outer faces
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(outerSize, outerSize, height / 2.0f, -height / 2.0f, point, true));
+            _faces.Add(CreateFace(outerSize, outerSize, height , 0, point, true));
         }
 
         // draw inner faces
         for (int point = 0; point < 6; point++)
         {
-            _faces.Add(CreateFace(innerSize, innerSize, height / 2.0f, -height / 2.0f, point));
+            _faces.Add(CreateFace(innerSize, innerSize, height, 0, point));
         }
 
     }
+
+   
 }

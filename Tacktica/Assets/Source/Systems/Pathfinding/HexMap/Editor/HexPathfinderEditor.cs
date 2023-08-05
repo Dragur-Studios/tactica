@@ -8,19 +8,18 @@ using UnityEngine;
 [CustomEditor(typeof(HexPathfinder))]
 public class HexPathfinderEditor : Editor
 {
-
     HexPathfinder pathfinder;
-    HexagonGrid layout;
+    HexWorldGenerator layout;
 
     Vector2Int start;
     Vector2Int end;
     bool hasPath = false;
-    List<Vector2Int> path = new List<Vector2Int>();
+    List<Vector3> path = new List<Vector3>();
 
     private void OnEnable()
     {
         pathfinder = (HexPathfinder)target;
-        layout = pathfinder.GetComponent<HexagonGrid>();
+        layout = pathfinder.GetComponent<HexWorldGenerator>();
     }
 
     public override void OnInspectorGUI()
@@ -30,7 +29,7 @@ public class HexPathfinderEditor : Editor
         start = EditorGUILayout.Vector2IntField("Start Node", start);
         if (GUILayout.Button("Random"))
         {
-            start = new Vector2Int(Random.Range(0, layout.gridResolution + 1), Random.Range(0, layout.gridResolution));
+            start = new Vector2Int(Random.Range(-layout.range, layout.range), Random.Range(-layout.range, layout.range));
         }
         GUILayout.EndHorizontal();
 
@@ -40,7 +39,7 @@ public class HexPathfinderEditor : Editor
         {
             do
             {
-                end = new Vector2Int(Random.Range(0, layout.gridResolution + 1), Random.Range(0, layout.gridResolution));
+                end = new Vector2Int(Random.Range(-layout.range, layout.range), Random.Range(-layout.range, layout.range));
             }
             while (end == start);
         }

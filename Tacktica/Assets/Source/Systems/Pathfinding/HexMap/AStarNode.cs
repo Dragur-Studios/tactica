@@ -2,7 +2,7 @@
 
 public class Node
 {
-    public Node(HexagonGrid layout, Vector2Int position)
+    public Node(HexWorldGenerator layout, Vector2Int position)
     {
         this.layout = layout;
         this.position = position;
@@ -10,23 +10,21 @@ public class Node
     public Vector2Int position;
     
     
-    protected HexagonGrid layout;
+    protected HexWorldGenerator layout;
 }
 
 
 public class AStarNode : Node
 {
-    public AStarNode(HexagonGrid layout, Vector2Int position)
+    public AStarNode(HexWorldGenerator layout, Vector2Int position, bool isWalkable)
         : base(layout, position)
     {
-
+        this.isWalkable = isWalkable;
     }
 
     public AStarNode parent;
-
-    public bool IsWalkable() {
-        return Physics.OverlapSphere(layout.GridToWorldPosition(position), 0.8f)?.Length <= 0;
-    }
+    
+    public bool isWalkable = true;
 
     public float gCost;
     public float hCost;
