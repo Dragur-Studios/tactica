@@ -14,15 +14,16 @@ public class AStar
         var openSet = new List<AStarNode>();
         var closedSet = new HashSet<AStarNode>();
        
-        var startNode = pathfinder.nodes[start.x, start.y];       // Use the existing node from the grid
-        var targetNode = pathfinder.nodes[target.x, target.y];    // Use the existing node from the grid
+        var startNode = pathfinder.nodes[start];       // Use the existing node from the grid
+        var targetNode = pathfinder.nodes[target];    // Use the existing node from the grid
 
         openSet.Add(startNode);
 
         while (openSet.Count > 0)
         {
             var currentNode = openSet[0];
-
+            
+            // Prefer Lower Costing Nodes
             for (int i = 1; i < openSet.Count; i++)
             {
                 if (openSet[i].FCost < currentNode.FCost || (openSet[i].FCost == currentNode.FCost && openSet[i].hCost < currentNode.hCost))
@@ -30,6 +31,9 @@ public class AStar
                     currentNode = openSet[i];
                 }
             }
+
+            Debug.Log($"Checking: {currentNode}");
+
 
             openSet.Remove(currentNode);
             closedSet.Add(currentNode);
@@ -40,13 +44,17 @@ public class AStar
                 return RetracePath(startNode, targetNode);
             }
 
+            var neighbors = HexGrid.GetNeighborPositions(currentNode.position, 16);
             
-            foreach (var neighborPosition in pathfinder.GetNeighborPositions(currentNode.position))
+            foreach (var neighborPosition in neighbors)
             {
-                var neighborNode = pathfinder.nodes[neighborPosition.x, neighborPosition.y]; // Use the existing node from the grid
+                var neighborNode = pathfinder.nodes[neighborPosition]; // Use the existing node from the grid
 
-                if (!neighborNode.IsWalkable() || closedSet.Contains(neighborNode))
+                Debug.Log($"Checking Neighbor: {neighborNode}");
+                
+                if (!neighborNode.isWalkable || closedSet.Contains(neighborNode))
                 {
+                    Debug.Log($"Checking Neighbor Failed: isWalkable: {neighborNode.isWalkable} isInSet:{closedSet.Contains(neighborNode)}");
                     continue;
                 }
 
@@ -65,6 +73,7 @@ public class AStar
                 }
             }
         }
+
         Debug.Log("<color=red>NO PATH COULD BE DETERMINED!</color>");
         return null; // Path not found
     }

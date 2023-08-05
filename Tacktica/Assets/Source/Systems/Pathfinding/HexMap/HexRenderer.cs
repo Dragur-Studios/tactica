@@ -20,44 +20,112 @@ public struct Face
     }
 }
 
+[ExecuteAlways]
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshRenderer))]
 public class HexRenderer : MonoBehaviour
 {
     Mesh _mesh;
-    MeshFilter _filter;
-    MeshRenderer _renderer;
 
     List<Face> _faces;
 
     public float innerSize = 0;
-    public float outerSize = 0;
-    public float height = 0.0f;
+    public float outerSize = 1;
+    public float height = 0.1f;
     public bool isFlatTopped = false;
 
+    float lastHeight;
+    float lastOuterSize;
+    float lastInnerSize;
+    bool lastIsFlatTopped;
+
+    bool hasInit = false;
+
+    public Material Material {
+        get {
+            var success = TryGetComponent(out MeshRenderer rend);
+
+            if (!success)
+            {
+                rend = gameObject.AddComponent<MeshRenderer>();
+            }
+
+            if (Application.isPlaying)
+            {
+                return rend.material;
+            }
+            else
+            {
+                return rend.sharedMaterial;
+            }
+
+        }
+        set {
+            var success = TryGetComponent(out MeshRenderer rend);
+
+            if (!success)
+            {
+                rend = gameObject.AddComponent<MeshRenderer>();
+            }
+
+            if (Application.isPlaying)  
+            { 
+                rend.material = value; 
+            } 
+            else 
+            { 
+                rend.sharedMaterial = value; 
+            } 
+        }
+    }
     private void Init()
     {
-        _filter = GetComponent<MeshFilter>();
-        
+        if (hasInit == true)
+            return;
+
         _mesh = new Mesh();
         _mesh.name = "Hex";
-        _filter.sharedMesh = _mesh;
 
-        _renderer = GetComponent<MeshRenderer>();
-        _renderer.material = Resources.Load<Material>("Materials/Tiles/Hexagon");
+        GetComponent<MeshFilter>().sharedMesh = _mesh;
 
         _faces = new List<Face>();
+        
+        hasInit = true;
     }
 
     public void GenerateMesh()
     {
         Init();
-
+        
         if (_mesh == null)
             return;
 
         CreateFaces();
         CombineFaces();
+    }
+
+    private void Update()
+    {
+        if(lastHeight != height)
+        {
+            GenerateMesh();
+            lastHeight = height;
+        }
+        if (lastInnerSize != innerSize)
+        {
+            GenerateMesh();
+            lastInnerSize = innerSize;
+        }
+        if(lastOuterSize != outerSize)
+        {
+            GenerateMesh();
+            lastOuterSize = outerSize;
+        }
+        if(lastIsFlatTopped != isFlatTopped)
+        {
+            GenerateMesh();
+            lastIsFlatTopped = isFlatTopped;
+        }
     }
 
     private void CombineFaces()
@@ -80,7 +148,7 @@ public class HexRenderer : MonoBehaviour
         }
 
         if (_mesh == null)
-            _mesh = _filter.sharedMesh;
+            _mesh = GetComponent<MeshFilter>().sharedMesh;
 
         _mesh.vertices = verts.ToArray();
         _mesh.uv = uv.ToArray();
@@ -152,4 +220,6 @@ public class HexRenderer : MonoBehaviour
         }
 
     }
+
+   
 }

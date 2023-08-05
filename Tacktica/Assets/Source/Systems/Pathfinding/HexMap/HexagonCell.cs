@@ -1,60 +1,55 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 public class HexagonCell : MonoBehaviour 
 {
     public bool hover = false;
+    public Vector2Int coord = Vector2Int.zero;
 
+    // Color defaultColor = Color.white;
     [HideInInspector] public Transform center = null;
-    MeshRenderer renderer;
-    Material material;
+    
+    //Material material;
 
-    Color defaultColor = Color.white;
+    HexWorldGenerator grid;
 
-    HexagonGrid grid;
     internal bool selected;
+    internal bool isWalkable = true;
 
-    private void Start()
+    //private void Start()
+    //{
+    //    Init();
+    //}
+
+    public void Init(Vector2Int coord)
     {
-        Init();
-    }
-
-    public void Init()
-    {
-        if (!Application.isPlaying)
-        {
-            renderer = GetComponent<MeshRenderer>();
-            material = renderer.sharedMaterial;
-
-            defaultColor = renderer.sharedMaterial.GetColor("_Base_Color");
-        }
-        else
-        {
-            renderer = GetComponent<MeshRenderer>();
-            material = renderer.material;
-
-            defaultColor = renderer.material.GetColor("_Base_Color");
-        }
-
+          
         if (grid == null)
-            grid = FindObjectOfType<HexagonGrid>();
+            grid = FindObjectOfType<HexWorldGenerator>();
+
+
+        this.coord = coord;
 
     }
 
     private void Update()
     {
-        if (hover)
-        {
-            Debug.Log($"Hovering: hexagon->{name}");
-            material.SetColor("_Base_Color", Color.green);
-        }
-        else if (selected)
-        {
-            material.SetColor("_Base_Color", Color.blue);
-        }
-        else
-        {
-            material.SetColor("_Base_Color", defaultColor);
-        }
+        //if (renderer == null)
+        //    return;
+
+        //if (hover)
+        //{
+        //    Debug.Log($"Hovering: hexagon->{name}");
+        //    material.SetColor("_Base_Color", Color.green);
+        //}
+        //else if (selected)
+        //{
+        //    material.SetColor("_Base_Color", Color.blue);
+        //}
+        //else
+        //{
+        //    material.SetColor("_Base_Color", defaultColor);
+        //}
     }
 
 
