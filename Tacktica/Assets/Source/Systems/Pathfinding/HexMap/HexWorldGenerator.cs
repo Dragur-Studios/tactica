@@ -173,7 +173,7 @@ public static class HexGrid
         int centerX = 0; // Set the center of the circle as needed
         int centerY = 0;
 
-        float distance = Vector2Int.Distance(position, new Vector2Int(centerX, centerY));
+        int distance = Mathf.RoundToInt(Vector2.Distance(position, new Vector2Int(centerX, centerY)));
 
         return distance <= radius;
     }
@@ -275,6 +275,7 @@ public class HexWorldGenerator : MonoBehaviour
         DestroyImmediate(world.gameObject);
 
     }
+   
     public void GenerateGrid(bool meshes, bool waypoints, bool colliders, bool ui_anchor)
     {
         Clear();

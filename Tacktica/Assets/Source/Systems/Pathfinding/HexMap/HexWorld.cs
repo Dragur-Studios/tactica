@@ -17,6 +17,7 @@ public class HexWorld : MonoBehaviour
 
         BuildGraph();
     }
+   
 
     void BuildGraph()
     {
@@ -29,8 +30,14 @@ public class HexWorld : MonoBehaviour
             var node = new HexNode();
             var data = worldData.nodes[i];
             
-            node.cell = HexGrid.CreateCell(transform, HexWorldData.MaxHeight * worldData.enviormentCurve.Evaluate(data.height), coords[i], data.type, worldData.isFlatTopped);
 
+            node.cell = HexGrid.CreateCell(transform, HexWorldData.MaxHeight * worldData.enviormentCurve.Evaluate(data.height), coords[i], data.type, worldData.isFlatTopped);
+            node.cell.gameObject.isStatic = true;
+            
+            node.cell.center = new GameObject("center").transform;
+            
+            AddAnchor(node);
+            
             graph.Add(coords[i], node);
         }
 
@@ -53,4 +60,18 @@ public class HexWorld : MonoBehaviour
 
     }
 
+    private static void AddAnchor(HexNode node)
+    {
+        // set the position to the cells transform to start alignment
+        node.cell.center.position = node.cell.transform.position;
+
+        // align the center object to the top of the cell
+        var center = node.cell.center.position;
+        
+        if (node.cell.TryGetComponent(out HexRenderer hex))
+            center.y += (hex.height) + 1e-4f;   // use the height and some small offset to get around z-fighting
+        
+        node.cell.center.position = center;
+        node.cell.center.SetParent(node.cell.transform, true);
+    }
 }
