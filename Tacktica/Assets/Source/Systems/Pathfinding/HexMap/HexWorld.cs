@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -18,7 +19,6 @@ public class HexWorld : MonoBehaviour
         BuildGraph();
     }
    
-
     void BuildGraph()
     {
         var coords = new List<Vector2Int>();
@@ -34,10 +34,9 @@ public class HexWorld : MonoBehaviour
             node.cell = HexGrid.CreateCell(transform, HexWorldData.MaxHeight * worldData.enviormentCurve.Evaluate(data.height), coords[i], data.type, worldData.isFlatTopped);
             node.cell.gameObject.isStatic = true;
             
-            node.cell.center = new GameObject("center").transform;
-            
-            AddAnchor(node);
-            
+            AddCenter(node);
+            AddUI(node);
+
             graph.Add(coords[i], node);
         }
 
@@ -58,10 +57,41 @@ public class HexWorld : MonoBehaviour
 
         }
 
+
+
+
     }
 
-    private static void AddAnchor(HexNode node)
+    private void AddUI(HexNode node)
     {
+        var go = new GameObject("ui");
+        go.transform.position = node.cell.center.position + (Vector3.one * 1e-6f);
+        go.transform.SetParent(node.cell.transform, true);
+
+
+        // add the pathfinding UI object
+        var node_display = new GameObject("node-display", typeof(HexRenderer));
+        var hex = node_display.GetComponent<HexRenderer>();
+        hex.isFlatTopped = worldData.isFlatTopped;
+        hex.outerSize = 1.0f;
+        hex.innerSize = 0.9f;
+        hex.height = 0.1f;
+        hex.GenerateMesh();
+        node_display.transform.position = go.transform.position;
+        node_display.transform.SetParent(go.transform, true);
+
+        
+        // add the node position ui object
+        // add any other UI objects here
+
+
+
+    }
+
+    private static void AddCenter(HexNode node)
+    {
+        node.cell.center = new GameObject("center").transform;
+
         // set the position to the cells transform to start alignment
         node.cell.center.position = node.cell.transform.position;
 
@@ -73,5 +103,6 @@ public class HexWorld : MonoBehaviour
         
         node.cell.center.position = center;
         node.cell.center.SetParent(node.cell.transform, true);
+
     }
 }

@@ -31,9 +31,6 @@ public class HexWorldData : ScriptableObject
                 continue;
 
             NodeData data = new NodeData();
-            
-            //if (!HexGrid.IsValidGridPosition(coord, range))
-            //    continue;
 
             data.position = coord;
 

@@ -123,7 +123,7 @@ public partial class @TackticaInput : IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""c020753c-db72-4ac3-9e46-33ecb531abc7"",
-                    ""path"": ""<Mouse>/middleButton"",
+                    ""path"": ""<Mouse>/rightButton"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Keyboard&Mouse"",
