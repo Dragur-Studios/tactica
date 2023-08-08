@@ -11,19 +11,19 @@ public class AgentLocomotion : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(destination != null)
-        {
-            Vector3 lastPosition = transform.position;
-            transform.position = Vector3.MoveTowards(transform.position, destination, 10.0f * Time.deltaTime);
-            velocity = (transform.position - lastPosition).normalized;
+        //if(destination != null)
+        //{
+        //    Vector3 lastPosition = transform.position;
+        //    transform.position = Vector3.MoveTowards(transform.position, destination, 10.0f * Time.deltaTime);
+        //    velocity = (transform.position - lastPosition).normalized;
         
-            if(velocity.magnitude >= 0.1f)
-            {
-                Quaternion lookRotation = Quaternion.LookRotation(velocity);
-                transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, 20.0f * Time.deltaTime);
-            }
+        //    if(velocity.magnitude >= 0.1f)
+        //    {
+        //        Quaternion lookRotation = Quaternion.LookRotation(velocity);
+        //        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, 20.0f * Time.deltaTime);
+        //    }
         
-        }
+        //}
     }
 
     public Vector3 Velocity { get => velocity; }

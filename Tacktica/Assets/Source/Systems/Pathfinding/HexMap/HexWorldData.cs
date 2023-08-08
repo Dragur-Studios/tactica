@@ -21,7 +21,7 @@ public class HexWorldData : ScriptableObject
 
     public bool isFlatTopped = false;
 
-    public void Decompose(Dictionary<Vector2Int, HexNode> graph, Dictionary<Vector2Int, float> heightmap, List<ElevationSettings> biome, AnimationCurve curve, int range)
+    public void Decompose(HashSet<KeyValuePair<Vector2Int, HexNode>> graph, HashSet<KeyValuePair<Vector2Int, float>> heightmap, List<ElevationSettings> biome, AnimationCurve curve, int range)
     {
         nodes.Clear();
 
@@ -44,22 +44,27 @@ public class HexWorldData : ScriptableObject
             data.neighbors = new List<Vector2Int>();
             data.neighbors.AddRange(neighbors);
 
-            if (heightmap.ContainsKey(coord))
-            {
-                data.height = heightmap[coord];
-            }
+            var height = heightmap.First(h => h.Key == coord).Value;
+            data.height = height;
+            //if(height != null)
+            //{
+            //}
+            //if (heightmap.ContainsKey(coord))
+            //{
+            //}
 
             // find the corrisponding type 
             int idx = 0;
 
             for (int i = 0; i < biome.Count; i++)
             {
-                if (!heightmap.ContainsKey(coord))
-                    continue;
+                var h = heightmap.First(h => h.Key == coord).Value;
+                //if (!heightmap.ContainsKey(coord))
+                //    continue;
 
-                float currentHeight = heightmap[coord];
+                //float currentHeight = heightmap[coord];
 
-                if (currentHeight <= biome[i].height)
+                if (h <= biome[i].height)
                 {
                     idx = i;
                     break;

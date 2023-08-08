@@ -1,5 +1,19 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.InputSystem;
+
+public enum HexState
+{
+    None,
+    Hover,
+    Selected,
+
+    Occupied,
+    Occupied_Hover,
+    Occupied_Selected,
+    
+    __COUNT__
+}
 
 public class HexagonCell : MonoBehaviour 
 {
@@ -8,60 +22,98 @@ public class HexagonCell : MonoBehaviour
 
     // Color defaultColor = Color.white;
     [HideInInspector] public Transform center = null;
-    
-    //Material material;
 
-    HexWorldGenerator grid;
+    public Agent agent = null;
 
-    internal bool selected;
-    internal bool isWalkable = true;
+    public bool isSelected = false;
+    public bool isWalkable = true;
+    public bool isOccupied = false;
 
-    //private void Start()
-    //{
-    //    Init();
-    //}
+    HexNodeDisplay nodeDisplay = null;
+    HexWorld world;
 
-    public void Init(Vector2Int coord)
+    public void Init(HexWorld world, Vector2Int coord)
     {
-          
-        if (grid == null)
-            grid = FindObjectOfType<HexWorldGenerator>();
-
+        if(world != null)
+        {
+            this.world = world;    
+        }
 
         this.coord = coord;
 
+        nodeDisplay = GetComponentInChildren<HexNodeDisplay>();
     }
 
     private void Update()
     {
-        //if (renderer == null)
-        //    return;
+        if (nodeDisplay == null)
+        {
+            nodeDisplay = GetComponentInChildren<HexNodeDisplay>();
+            return;
+        }
 
-        //if (hover)
-        //{
-        //    Debug.Log($"Hovering: hexagon->{name}");
-        //    material.SetColor("_Base_Color", Color.green);
-        //}
-        //else if (selected)
-        //{
-        //    material.SetColor("_Base_Color", Color.blue);
-        //}
-        //else
-        //{
-        //    material.SetColor("_Base_Color", defaultColor);
-        //}
+        var col = Physics.OverlapSphere(center.transform.position, 0.8f);
+        isOccupied = col.Length > 1;
+
+        if (!isOccupied)
+        {
+            if (hover)
+            {
+                nodeDisplay.SetState(HexState.Hover);
+            }
+            else if (isSelected)
+            {
+                nodeDisplay.SetState(HexState.Selected);
+            }
+            else
+            {
+                nodeDisplay.SetState(HexState.None);
+            }
+
+        }
+        else
+        {
+            for (int i = 0; i < col.Length; i++)
+            {
+                col[i].TryGetComponent<Agent>(out agent);
+            }
+
+
+            if (hover)
+            {
+                nodeDisplay.SetState(HexState.Occupied_Hover);
+            }
+            else if (isSelected)
+            {
+                nodeDisplay.SetState(HexState.Occupied_Selected);
+            }
+            else
+            {
+                nodeDisplay.SetState(HexState.Occupied);
+            }
+            
+
+        }
+
+        if (hover && Mouse.current.leftButton.wasPressedThisFrame)
+        { 
+            world.OnCellSelected(this);
+        }
+    
     }
 
-
-    public void OnMouseEnter()
+    private void OnMouseEnter()
     {
-        grid.OnCellHoverEnter(this);
+        world.OnCellHoverEnter(this);
+
+        
     }
 
-    public void OnMouseExit()
+
+    private void OnMouseExit()
     {
-        grid.OnCellHoverExit(this);
+        world.OnCellHoverExit(this);
     }
 
-
+    
 }

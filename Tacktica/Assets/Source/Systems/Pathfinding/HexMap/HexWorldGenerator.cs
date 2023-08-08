@@ -7,28 +7,31 @@ using UnityEditor;
 using UnityEngine;
 
 [System.Serializable]
-public class HexNode
-{
-    public HexagonCell cell;
-    public List<HexNode> neighbors = new List<HexNode>();
-}
-
-[System.Serializable]
 public struct ElevationSettings
 {
     public string name;
     public float height;
-    public Color color;
+    // eventually will be changed out for textures
+    public Color color; 
+    public Color sidesColor;
 
     public static ElevationSettings Default => new()
     {
         name = "_DEFAULT_",
         height = 1e-6f,
-        color = Color.black,
+        color = Color.magenta,
+        sidesColor = Color.magenta
     };
         
     public bool isTransparent => color.a < 1.0f;
 
+}
+
+[System.Serializable]
+public class HexNode
+{
+    public HexagonCell cell;
+    public List<HexNode> neighbors = new List<HexNode>();
 }
 
 public static class HexGrid
@@ -39,15 +42,18 @@ public static class HexGrid
     {
         var go = new GameObject($"Hex( {coord})", typeof(HexagonCell), typeof(HexRenderer));
         var cell = go.GetComponent<HexagonCell>();
-        cell.Init(coord);
+        var world = parent.GetComponent<HexWorld>();
+        cell.Init(world, coord);
         var hex = go.GetComponent<HexRenderer>();
         hex.isFlatTopped = isFlatTopped;
         hex.height = height;
 
         var material = new Material(Resources.Load<Material>("Materials/Tiles/Hexagon" + (type.isTransparent ? "(Transparent)" : "")));
         material.SetColor("_Base_Color", type.color);
-        hex.Material = material;
+        material.SetColor("_Side_Color", type.sidesColor);
+        material.SetFloat("_Opacity", (type.color.a + type.sidesColor.a) / 2.0f);
 
+        hex.Material = material;
 
         hex.GenerateMesh();
         
@@ -183,9 +189,11 @@ public static class HexGrid
 
 public class HexWorldGenerator : MonoBehaviour
 {
+    public HashSet<KeyValuePair<Vector2Int, HexNode>> graph = new HashSet<KeyValuePair<Vector2Int, HexNode>>();
+    public HashSet<KeyValuePair<Vector2Int, float>> heightmap = new HashSet<KeyValuePair<Vector2Int, float>>();
+
     [Header("Grid Settings")]
     public int cell_count = 999;
-    
 
     [Header("Visibility")]
     public int range = 16;
@@ -195,12 +203,6 @@ public class HexWorldGenerator : MonoBehaviour
     public float inner_size = 0.75f;
     public float outer_size = 1.0f;
     public float height = 0.1f;
-
-    public Dictionary<Vector2Int, HexNode> graph;
-    public Dictionary<Vector2Int, float> heightmap;
-
-    HexagonCell hover;
-    HexagonCell selected;
 
     // enviorment settings
     public List<ElevationSettings> biome = new List<ElevationSettings>();
@@ -214,6 +216,7 @@ public class HexWorldGenerator : MonoBehaviour
     [HideInInspector] public float roughness = 0.5f;
 
     // perlin settings
+    [HideInInspector] public Vector2Int offset = Vector2Int.zero;
     [HideInInspector] public const float minHeightMultiplier = 1.0f;
     [HideInInspector] public const float maxHeightMultiplier = 100.0f;
     [HideInInspector] public float maxHeight = 10f;
@@ -225,7 +228,7 @@ public class HexWorldGenerator : MonoBehaviour
     [HideInInspector] public const float maxPersitance = 1.0f;
     [HideInInspector] public float persistance = 1.0f;
     [HideInInspector] public const float minScale = 1e-9f;
-    [HideInInspector] public const float maxScale = 10.0f;
+    [HideInInspector] public const float maxScale = 100.0f;
     [HideInInspector] public float scale = 0.17f;
     [HideInInspector] public const int minOctaves = 1;
     [HideInInspector] public const int maxOctaves = 10;
@@ -244,14 +247,15 @@ public class HexWorldGenerator : MonoBehaviour
 
         world.worldData = worldData;
         
-        if (!Directory.Exists("Assets/Hex Worlds/"))
+        string basepath = "Assets/Resources/Prefabs/Hex Worlds/";
+        if (!Directory.Exists(basepath))
         {
-            AssetDatabase.CreateFolder("Assets", "Hex Worlds");
+            AssetDatabase.CreateFolder("Assets/Resources/Prefabs", "Hex Worlds");
         }
 
-        string basepath = "Assets/Hex Worlds/";
         string prefabPath = Path.Combine(basepath, $"{world.gameObject.name}.prefab");
         string dataPath = Path.Combine(basepath, $"{worldData.name}.asset");
+        
         // Make sure the file name is unique, in case an existing Prefab has the same name.
         prefabPath = AssetDatabase.GenerateUniqueAssetPath(prefabPath);
 
@@ -275,12 +279,25 @@ public class HexWorldGenerator : MonoBehaviour
         DestroyImmediate(world.gameObject);
 
     }
-   
+
+
+    public void Regenerate(HashSet<KeyValuePair<Vector2Int, float>> heightmap)
+    {
+        foreach (var (coord, node) in graph)
+        {
+            var hex = node.cell.GetComponent<HexRenderer>();
+            hex.height = heightmap.First(h => h.Key == coord).Value;
+            hex.GenerateMesh();
+        }   
+
+
+    }
+
     public void GenerateGrid(bool meshes, bool waypoints, bool colliders, bool ui_anchor)
     {
         Clear();
 
-        graph = new Dictionary<Vector2Int, HexNode>();
+        graph = new HashSet<KeyValuePair<Vector2Int, HexNode>>();
 
         CreateCells();
         ConnectNeighbors();
@@ -323,16 +340,12 @@ public class HexWorldGenerator : MonoBehaviour
                 if (!HexGrid.IsValidGridPosition(coord, range))
                     continue;
 
-                if(graph.TryGetValue(coord, out HexNode found))
-                {          
-                    continue;
-                }
-                else
-                {
-                    node.cell = HexGrid.CreateCell(transform, 0.1f, coord, ElevationSettings.Default, isFlatTopped);
-                    
-                    graph.Add(new Vector2Int(x, y), node);
-                }
+                //if (graph.First(n => n.Key == coord).Key != null)
+                //    continue;
+
+                node.cell = HexGrid.CreateCell(transform, 0.1f, coord, ElevationSettings.Default, isFlatTopped);
+                graph.Add(new KeyValuePair<Vector2Int, HexNode>(new Vector2Int(x, y), node));
+                
             }
         }
     }
@@ -347,18 +360,19 @@ public class HexWorldGenerator : MonoBehaviour
             {
                 if (HexGrid.IsValidGridPosition(neighbors[i], range))
                 {
-                    node.neighbors.Add(graph[neighbors[i]]);
+                    var neighbor = graph.First(n => n.Key == neighbors[i]).Value;
+                    node.neighbors.Add(neighbor);
                 }
             }
 
         }
     }
 
-    public void GenerateGrid(Dictionary<Vector2Int, float> heights, bool meshes, bool waypoints, bool colliders, bool ui_anchor)
+    public void GenerateGrid(HashSet<KeyValuePair<Vector2Int, float>> heights, bool meshes, bool waypoints, bool colliders, bool ui_anchor)
     {
         Clear();
 
-        graph = new Dictionary<Vector2Int, HexNode>();
+        graph = new HashSet<KeyValuePair<Vector2Int, HexNode>>();
         heightmap = heights;
 
         CreateCells();
@@ -392,7 +406,7 @@ public class HexWorldGenerator : MonoBehaviour
             for (int y = -range; y < range; y++)
             {
                 var coord = new Vector2Int(x, y);
-                var node = graph[coord];
+                var node = graph.First(n => n.Key == coord).Value;
                 var cell = node.cell;
 
                 if (!HexGrid.IsValidGridPosition(coord, range))
@@ -420,7 +434,7 @@ public class HexWorldGenerator : MonoBehaviour
         }
     }
 
-    void GenerateMeshes(Dictionary<Vector2Int, float> heightmap)
+    void GenerateMeshes(HashSet<KeyValuePair<Vector2Int, float>>heightmap)
     {
         for (int x = -range; x < range; x++)
         {
@@ -432,9 +446,8 @@ public class HexWorldGenerator : MonoBehaviour
                 if (!HexGrid.IsValidGridPosition(coord, range))
                     continue;
 
-                var node = graph[coord];
-
-                var height = heightmap[coord];
+                var node = graph.First(n => n.Key == coord).Value;
+                var height = heightmap.First(h => h.Key == coord).Value;
 
                 if (height <= 0)
                     height = 1e-6f;
@@ -459,26 +472,30 @@ public class HexWorldGenerator : MonoBehaviour
                     hex.GenerateMesh();
                 }
 
-                var material = new Material(Resources.Load<Material>("Materials/Tiles/Hexagon" + (heightmap[coord] <= 0.4f ? "(Transparent)" : "")));
+                var h = heightmap.First(h => h.Key == coord).Value;
+                var material = new Material(Resources.Load<Material>("Materials/Tiles/Hexagon" + (h <= 0.4f ? "(Transparent)" : "")));
 
 
                 // find the color that corrisponds with the height value
                 // heights are normalized 
                 Color color = Color.magenta; // WRONG COLOR
+                Color scolor = Color.magenta; // WRONG COLOR
 
                 for (int i = 0; i < biome.Count; i++)
                 {
-                    float currentHeight = heightmap[coord];
+                    float currentHeight = heightmap.First(h => h.Key == coord).Value;
 
                     if (currentHeight <= biome[i].height )
                     {
                         color = biome[i].color;
-                        //Debug.Log($"Color Found: height(norm): {heightmap[coord]} height: {height} color: {color}  ");
+                        scolor = biome[i].sidesColor;
                         break;
                     }
                 }
 
                 material.SetColor("_Base_Color", color);
+                material.SetColor("_Side_Color", scolor);
+                material.SetFloat("_Opacity", (color.a + scolor.a) / 2.0f);
 
                 hex.Material = material;
 
@@ -497,7 +514,7 @@ public class HexWorldGenerator : MonoBehaviour
                 if (!HexGrid.IsValidGridPosition(coord, range))
                     continue;
 
-                var node = graph[coord];
+                var node = graph.First(n => n.Key == coord).Value;
                 var cell = node.cell;
 
                 // create the center transform object for use with pathfinding and placement
@@ -523,7 +540,7 @@ public class HexWorldGenerator : MonoBehaviour
             for (int y = -range; y < range; y++)
             {
                 var coord = new Vector2Int(x, y);
-                var node = graph[coord];
+                var node = graph.First(n => n.Key == coord).Value;
                 var cell = node.cell;
 
 
@@ -566,7 +583,11 @@ public class HexWorldGenerator : MonoBehaviour
             for (int y = -range; y < range; y++)
             {
                 var coord = new Vector2Int(x, y);
-                var node = graph[coord];
+
+                if (!HexGrid.IsValidGridPosition(coord, range))
+                    continue;
+
+                var node = graph.First(n => n.Key == coord).Value;
                 var cell = node.cell;
 
                 if (cell.TryGetComponent(out MeshCollider col))
@@ -591,7 +612,7 @@ public class HexWorldGenerator : MonoBehaviour
             for (int y = -range; y < range; y++)
             {
                 var coord = new Vector2Int(x, y);
-                var node = graph[coord];
+                var node = graph.First(n => n.Key == coord).Value;
                 var cell = node.cell;
 
                 if (cell.TryGetComponent(out MeshCollider col))
@@ -657,46 +678,6 @@ public class HexWorldGenerator : MonoBehaviour
 
     }
 
-
-
-
-
-
-    public void OnCellHoverEnter(HexagonCell cell)
-    {
-        cell.hover = true;
-        hover = cell;
-    }
-
-    public void OnCellHoverExit(HexagonCell cell)
-    {
-        hover = null;
-        cell.hover = false;
-    }
-
-    public void OnCellSelected(HexagonCell cell)
-    {
-        if (selected == cell)
-        {
-            cell.selected = false;
-            selected = null;
-            return;
-        }
-
-        if (selected)
-        {
-            selected.selected = false;
-            selected = null;
-        }
-
-        cell.selected = true;
-        selected = cell;
-
-        if (hover)
-        {
-            hover = null;
-        }
-    }
 
 
 }

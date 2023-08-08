@@ -2,24 +2,23 @@
 
 public class Node
 {
-    public Node(HexWorldGenerator layout, Vector2Int position)
+    public Node(HexNode data, Vector2Int position)
     {
-        this.layout = layout;
+        this.data = data;
         this.position = position;
     }
     public Vector2Int position;
     
-    
-    protected HexWorldGenerator layout;
+    protected HexNode data;
 }
 
 
 public class AStarNode : Node
 {
-    public AStarNode(HexWorldGenerator layout, Vector2Int position, bool isWalkable)
-        : base(layout, position)
+    public AStarNode(HexNode data, Vector2Int position)
+        : base(data, position)
     {
-        this.isWalkable = isWalkable;
+        isWalkable = data.cell.isWalkable;
     }
 
     public AStarNode parent;

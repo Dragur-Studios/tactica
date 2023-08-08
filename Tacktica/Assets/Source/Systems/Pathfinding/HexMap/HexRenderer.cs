@@ -83,13 +83,17 @@ public class HexRenderer : MonoBehaviour
         if (hasInit == true)
             return;
 
-        _mesh = new Mesh();
-        _mesh.name = "Hex";
+        if ((_mesh = Resources.Load<Mesh>("Meshes/heagon")) == null)
+        {
+            _mesh = new Mesh();
+            _mesh.name = "hexagon";
+            
+            _faces = new List<Face>();
+        
+        }
 
         GetComponent<MeshFilter>().sharedMesh = _mesh;
 
-        _faces = new List<Face>();
-        
         hasInit = true;
     }
 
@@ -102,6 +106,7 @@ public class HexRenderer : MonoBehaviour
 
         CreateFaces();
         CombineFaces();
+        
     }
 
     private void Update()
@@ -147,8 +152,10 @@ public class HexRenderer : MonoBehaviour
 
         }
 
-        if (_mesh == null)
-            _mesh = GetComponent<MeshFilter>().sharedMesh;
+        //if (_mesh == null)
+        //{
+        //    _mesh = Resources.Load<Mesh>("Meshes/hexagon");
+        //}
 
         _mesh.vertices = verts.ToArray();
         _mesh.uv = uv.ToArray();
@@ -157,6 +164,8 @@ public class HexRenderer : MonoBehaviour
         _mesh.RecalculateNormals();
         _mesh.RecalculateBounds();
         _mesh.RecalculateTangents();
+
+        GetComponent<MeshFilter>().sharedMesh = _mesh;
 
     }
     Vector3 GetPoint(float size, float height, int idx)

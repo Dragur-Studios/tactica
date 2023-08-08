@@ -7,15 +7,13 @@ public class AStar
     const int STANDARD_COST = 10;
     const int DIAGONAL_COST = 14;
 
-
-    public static List<Vector2Int> FindPath(HexPathfinder pathfinder, Vector2Int start, Vector2Int target)
+    public static List<Vector2Int> FindPath(Dictionary<Vector2Int, AStarNode> graph, Vector2Int start, Vector2Int target)
     {
-
         var openSet = new List<AStarNode>();
         var closedSet = new HashSet<AStarNode>();
        
-        var startNode = pathfinder.nodes[start];       // Use the existing node from the grid
-        var targetNode = pathfinder.nodes[target];    // Use the existing node from the grid
+        var startNode = graph[start];      
+        var targetNode = graph[target];    
 
         openSet.Add(startNode);
 
@@ -32,15 +30,11 @@ public class AStar
                 }
             }
 
-            Debug.Log($"Checking: {currentNode}");
-
-
             openSet.Remove(currentNode);
             closedSet.Add(currentNode);
 
             if (currentNode == targetNode)
             {
-                Debug.Log("Path Found");
                 return RetracePath(startNode, targetNode);
             }
 
@@ -48,13 +42,10 @@ public class AStar
             
             foreach (var neighborPosition in neighbors)
             {
-                var neighborNode = pathfinder.nodes[neighborPosition]; // Use the existing node from the grid
+                var neighborNode = graph[neighborPosition]; 
 
-                Debug.Log($"Checking Neighbor: {neighborNode}");
-                
                 if (!neighborNode.isWalkable || closedSet.Contains(neighborNode))
                 {
-                    Debug.Log($"Checking Neighbor Failed: isWalkable: {neighborNode.isWalkable} isInSet:{closedSet.Contains(neighborNode)}");
                     continue;
                 }
 
@@ -95,6 +86,7 @@ public class AStar
         path.Reverse();
         return path;
     }
+
     private static int GetDistance(AStarNode nodeA, AStarNode nodeB)
     {
         int dx = Mathf.Abs(nodeA.position.x - nodeB.position.x);
